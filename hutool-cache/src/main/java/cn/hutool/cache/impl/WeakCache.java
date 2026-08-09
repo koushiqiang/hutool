@@ -1,12 +1,16 @@
 package cn.hutool.cache.impl;
 
-import java.util.WeakHashMap;
+import cn.hutool.cache.CacheListener;
+import cn.hutool.core.lang.Opt;
+import cn.hutool.core.lang.mutable.Mutable;
+import cn.hutool.core.lang.ref.Ref;
+import cn.hutool.core.map.reference.WeakKeyValueConcurrentMap;
 
 /**
  * 弱引用缓存<br>
  * 对于一个给定的键，其映射的存在并不阻止垃圾回收器对该键的丢弃，这就使该键成为可终止的，被终止，然后被回收。<br>
  * 丢弃某个键时，其条目从映射中有效地移除。<br>
- * 
+ *
  * @author Looly
  *
  * @param <K> 键
@@ -17,8 +21,24 @@ import java.util.WeakHashMap;
 public class WeakCache<K, V> extends TimedCache<K, V>{
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * 构造
+	 * @param timeout 超时时常，单位毫秒，-1或0表示无限制
+	 */
 	public WeakCache(long timeout) {
-		super(timeout, new WeakHashMap<K, CacheObj<K, V>>());
+		super(timeout, new WeakKeyValueConcurrentMap<>());
 	}
 
+	@Override
+	public WeakCache<K, V> setListener(CacheListener<K, V> listener) {
+		super.setListener(listener);
+
+		final WeakKeyValueConcurrentMap<Mutable<K>, CacheObj<K, V>> map = (WeakKeyValueConcurrentMap<Mutable<K>, CacheObj<K, V>>) this.cacheMap;
+		// WeakKey回收之后，key对应的值已经是null了，因此此处的key也为null
+		map.setPurgeListener((key, value)-> listener.onRemove(
+			Opt.ofNullable(key).map(Ref::get).map(Mutable::get).get(),
+			Opt.ofNullable(value).map(Ref::get).map(CacheObj::getValue).get()));
+
+		return this;
+	}
 }

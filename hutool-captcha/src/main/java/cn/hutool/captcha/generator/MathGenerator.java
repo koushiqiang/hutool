@@ -1,12 +1,13 @@
 package cn.hutool.captcha.generator;
 
+import cn.hutool.core.math.Calculator;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 
 /**
  * 数字计算验证码生成器
- * 
+ *
  * @author looly
  * @since 4.1.2
  */
@@ -15,38 +16,75 @@ public class MathGenerator implements CodeGenerator {
 
 	private static final String operators = "+-*";
 
-	/** 参与计算数字最大长度 */
-	private int numberLength;
+	/**
+	 * 参与计算数字最大长度
+	 */
+	private final int numberLength;
+
+	/**
+	 * 计算结果是否允许负数
+	 */
+	private final boolean resultHasNegativeNumber;
 
 	/**
 	 * 构造
 	 */
 	public MathGenerator() {
-		this(2);
+		this(2, true);
 	}
 
 	/**
 	 * 构造
-	 * 
+	 *
+	 * @param resultHasNegativeNumber 结果是否允许负数
+	 */
+	public MathGenerator(boolean resultHasNegativeNumber) {
+		this(2, resultHasNegativeNumber);
+	}
+
+	/**
+	 * 构造
+	 *
 	 * @param numberLength 参与计算最大数字位数
 	 */
 	public MathGenerator(int numberLength) {
+		this(numberLength, true);
+	}
+
+	/**
+	 * 构造
+	 *
+	 * @param numberLength            参与计算最大数字位数
+	 * @param resultHasNegativeNumber 结果是否允许负数
+	 */
+	public MathGenerator(int numberLength, boolean resultHasNegativeNumber) {
 		this.numberLength = numberLength;
+		this.resultHasNegativeNumber = resultHasNegativeNumber;
 	}
 
 	@Override
 	public String generate() {
 		final int limit = getLimit();
-		String number1 = Integer.toString(RandomUtil.randomInt(limit));
-		String number2 = Integer.toString(RandomUtil.randomInt(limit));
+		char operator = RandomUtil.randomChar(operators);
+		int numberInt1 = 0;
+		int numberInt2 = 0;
+		numberInt1 = RandomUtil.randomInt(limit);
+		// 如果禁止了结果有负数，且计算方式正好计算为减法，需要第二个数小于第一个数
+		if (!resultHasNegativeNumber && CharUtil.equals('-', operator, false)) {
+			//如果第一个数为0，第二个数必须为0，随机[0,0)的数字会报错
+			numberInt2 = numberInt1 == 0 ? 0 : RandomUtil.randomInt(0, numberInt1);
+		} else {
+			numberInt2 = RandomUtil.randomInt(limit);
+		}
+		String number1 = Integer.toString(numberInt1);
+		String number2 = Integer.toString(numberInt2);
 		number1 = StrUtil.padAfter(number1, this.numberLength, CharUtil.SPACE);
 		number2 = StrUtil.padAfter(number2, this.numberLength, CharUtil.SPACE);
-
 		return StrUtil.builder()//
-				.append(number1)//
-				.append(RandomUtil.randomChar(operators))//
-				.append(number2)//
-				.append('=').toString();
+			.append(number1)//
+			.append(operator)//
+			.append(number2)//
+			.append('=').toString();
 	}
 
 	@Override
@@ -59,25 +97,13 @@ public class MathGenerator implements CodeGenerator {
 			return false;
 		}
 
-		final int a = Integer.parseInt(StrUtil.sub(code, 0, this.numberLength).trim());
-		final char operator = code.charAt(this.numberLength);
-		final int b = Integer.parseInt(StrUtil.sub(code, this.numberLength + 1, this.numberLength + 1 + this.numberLength).trim());
-
-		switch (operator) {
-		case '+':
-			return (a + b) == result;
-		case '-':
-			return (a - b) == result;
-		case '*':
-			return (a * b) == result;
-		default:
-			return false;
-		}
+		final int calculateResult = (int) Calculator.conversion(code);
+		return result == calculateResult;
 	}
 
 	/**
-	 * 获取长度验证码
-	 * 
+	 * 获取验证码长度
+	 *
 	 * @return 验证码长度
 	 */
 	public int getLength() {
@@ -86,7 +112,7 @@ public class MathGenerator implements CodeGenerator {
 
 	/**
 	 * 根据长度获取参与计算数字最大值
-	 * 
+	 *
 	 * @return 最大值
 	 */
 	private int getLimit() {

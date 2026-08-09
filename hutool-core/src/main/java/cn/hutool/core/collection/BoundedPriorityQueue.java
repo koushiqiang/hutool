@@ -2,7 +2,6 @@ package cn.hutool.core.collection;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.PriorityQueue;
@@ -16,18 +15,18 @@ import java.util.PriorityQueue;
  */
 public class BoundedPriorityQueue<E> extends PriorityQueue<E>{
 	private static final long serialVersionUID = 3794348988671694820L;
-	
+
 	//容量
 	private final int capacity;
 	private final Comparator<? super E> comparator;
-	
+
 	public BoundedPriorityQueue(int capacity) {
 		this(capacity, null);
 	}
-	
+
 	/**
 	 * 构造
-	 * @param capacity 容量
+	 * @param capacity 容量，必须大于0
 	 * @param comparator 比较器
 	 */
 	public BoundedPriorityQueue(int capacity, final Comparator<? super E> comparator) {
@@ -64,7 +63,7 @@ public class BoundedPriorityQueue<E> extends PriorityQueue<E>{
 		}
 		return super.offer(e);
 	}
-	
+
 	/**
 	 * 添加多个元素<br>
 	 * 参数为集合的情况请使用{@link PriorityQueue#addAll}
@@ -74,16 +73,16 @@ public class BoundedPriorityQueue<E> extends PriorityQueue<E>{
 	public boolean addAll(E[] c) {
 		return this.addAll(Arrays.asList(c));
 	}
-	
+
 	/**
 	 * @return 返回排序后的列表
 	 */
 	public ArrayList<E> toList() {
 		final ArrayList<E> list = new ArrayList<>(this);
-		Collections.sort(list, comparator);
+		list.sort(comparator);
 		return list;
 	}
-	
+
 	@Override
 	public Iterator<E> iterator() {
 		return toList().iterator();

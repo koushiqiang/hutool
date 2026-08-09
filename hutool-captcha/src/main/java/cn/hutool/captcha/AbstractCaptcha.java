@@ -7,11 +7,9 @@ import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IORuntimeException;
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.util.URLUtil;
 
-import java.awt.AlphaComposite;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Image;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -59,11 +57,12 @@ public abstract class AbstractCaptcha implements ICaptcha {
 	/**
 	 * 背景色
 	 */
-	protected Color background;
+	protected Color background = Color.WHITE;
 	/**
 	 * 文字透明度
 	 */
 	protected AlphaComposite textAlpha;
+	protected Stroke stroke;
 
 	/**
 	 * 构造，使用随机验证码生成器生成验证码
@@ -92,6 +91,25 @@ public abstract class AbstractCaptcha implements ICaptcha {
 		this.interfereCount = interfereCount;
 		// 字体高度设为验证码高度-2，留边距
 		this.font = new Font(Font.SANS_SERIF, Font.PLAIN, (int) (this.height * 0.75));
+	}
+
+
+	/**
+	 * 构造
+	 *
+	 * @param width          图片宽
+	 * @param height         图片高
+	 * @param generator      验证码生成器
+	 * @param interfereCount 验证码干扰元素个数
+	 * @param size 			 字体的大小 高度的倍数
+	 */
+	public AbstractCaptcha(int width, int height, CodeGenerator generator, int interfereCount, float size) {
+		this.width = width;
+		this.height = height;
+		this.generator = generator;
+		this.interfereCount = interfereCount;
+		// 字体高度设为验证码高度-2，留边距
+		this.font = new Font(Font.SANS_SERIF, Font.PLAIN, (int) (this.height * size));
 	}
 
 	@Override
@@ -195,6 +213,16 @@ public abstract class AbstractCaptcha implements ICaptcha {
 	}
 
 	/**
+	 * 获取图片带文件格式的 Base64
+	 *
+	 * @return 图片带文件格式的 Base64
+	 * @since 5.3.11
+	 */
+	public String getImageBase64Data() {
+		return URLUtil.getDataUriBase64("image/png", getImageBase64());
+	}
+
+	/**
 	 * 自定义字体
 	 *
 	 * @param font 字体
@@ -241,4 +269,13 @@ public abstract class AbstractCaptcha implements ICaptcha {
 		this.textAlpha = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, textAlpha);
 	}
 
+	/**
+	 * 设置画笔线条特征，如线条宽度等
+	 *
+	 * @param stroke 画笔
+	 * @since 5.8.44
+	 */
+	public void setStroke(Stroke stroke) {
+		this.stroke = stroke;
+	}
 }

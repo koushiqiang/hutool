@@ -1,23 +1,22 @@
 package cn.hutool.db.sql;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.nio.charset.Charset;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.RowId;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map.Entry;
-
 import cn.hutool.core.io.IoUtil;
+import cn.hutool.core.lang.PatternPool;
 import cn.hutool.core.util.CharsetUtil;
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.db.DbRuntimeException;
 import cn.hutool.db.Entity;
 import cn.hutool.db.sql.Condition.LikeType;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.sql.*;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 /**
  * SQL相关工具类，包括相关SQL语句拼接等
@@ -26,6 +25,15 @@ import cn.hutool.db.sql.Condition.LikeType;
  * @since 4.0.10
  */
 public class SqlUtil {
+
+	/**
+	 * 创建SQL中的order by语句的正则
+	 */
+	private static final Pattern PATTERN_ORDER_BY = PatternPool.get("(.*)\\s+order\\s+by\\s+[^\\s]+", Pattern.CASE_INSENSITIVE);
+	/**
+	 * SQL中的in语句部分的正则
+	 */
+	private static final Pattern PATTERN_IN_CLAUSE = PatternPool.get("\\s+in\\s+[(]\\s*$", Pattern.CASE_INSENSITIVE);
 
 	/**
 	 * 构件相等条件的where语句<br>
@@ -85,17 +93,17 @@ public class SqlUtil {
 	 * 创建LIKE语句中的值，创建的结果为：
 	 *
 	 * <pre>
-	 * 1、LikeType.StartWith: %value
-	 * 2、LikeType.EndWith: value%
-	 * 3、LikeType.Contains: %value%
+	 * 1、LikeType.StartWith: '%value'
+	 * 2、LikeType.EndWith: 'value%'
+	 * 3、LikeType.Contains: '%value%'
 	 * </pre>
 	 * <p>
 	 * 如果withLikeKeyword为true，则结果为：
 	 *
 	 * <pre>
-	 * 1、LikeType.StartWith: LIKE %value
-	 * 2、LikeType.EndWith: LIKE value%
-	 * 3、LikeType.Contains: LIKE %value%
+	 * 1、LikeType.StartWith: LIKE '%value'
+	 * 2、LikeType.EndWith: LIKE 'value%'
+	 * 3、LikeType.Contains: LIKE '%value%'
 	 * </pre>
 	 *
 	 * @param value           被查找值
@@ -105,7 +113,7 @@ public class SqlUtil {
 	 */
 	public static String buildLikeValue(String value, LikeType likeType, boolean withLikeKeyword) {
 		if (null == value) {
-			return value;
+			return null;
 		}
 
 		StringBuilder likeValue = StrUtil.builder(withLikeKeyword ? "LIKE " : "");
@@ -251,5 +259,30 @@ public class SqlUtil {
 	 */
 	public static java.sql.Timestamp toSqlTimestamp(java.util.Date date) {
 		return new java.sql.Timestamp(date.getTime());
+	}
+
+	/**
+	 * 移除 SQL中的 ORDER BY 子句
+	 *
+	 * @param selectSql 原始 SQL
+	 * @return 移除 ORDER BY 子句后的 SQL
+	 * @since 5.8.41
+	 */
+	public static String removeOuterOrderBy(final String selectSql) {
+		// 去除order by 子句
+		String sql = ReUtil.getGroup1(PATTERN_ORDER_BY, selectSql);
+		return sql == null ? selectSql : sql;
+	}
+
+	/**
+	 * 判断当前上下文是否在 IN 子句中
+	 * 通过检查变量前的SQL文本，判断是否符合 IN 子句的模式
+	 *
+	 * @param sql 当前已构建的SQL
+	 * @return 是否在 IN 子句中
+	 * @since 5.8.41
+	 */
+	public static boolean isInClause(final CharSequence sql) {
+		return ReUtil.contains(PATTERN_IN_CLAUSE, sql);
 	}
 }

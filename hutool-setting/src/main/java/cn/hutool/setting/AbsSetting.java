@@ -1,17 +1,18 @@
 package cn.hutool.setting;
 
-import java.io.Serializable;
-import java.lang.reflect.Type;
-
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.bean.copier.ValueProvider;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.getter.OptNullBasicTypeFromStringGetter;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
+
+import java.io.Serializable;
+import java.lang.reflect.Type;
 
 /**
  * Setting抽象类
@@ -42,14 +43,25 @@ public abstract class AbsSetting implements OptNullBasicTypeFromStringGetter<Str
 	 * @param key          KEY
 	 * @param group        分组
 	 * @param defaultValue 默认值
-	 * @return 值或默认值
+	 * @return 值，如果字符串为{@code null}返回默认值
 	 */
 	public String getStr(String key, String group, String defaultValue) {
 		final String value = getByGroup(key, group);
-		if (StrUtil.isBlank(value)) {
-			return defaultValue;
-		}
-		return value;
+		return ObjectUtil.defaultIfNull(value, defaultValue);
+	}
+
+	/**
+	 * 获得字符串类型值，如果字符串为{@code null}或者""返回默认值
+	 *
+	 * @param key          KEY
+	 * @param group        分组
+	 * @param defaultValue 默认值
+	 * @return 值，如果字符串为{@code null}或者""返回默认值
+	 * @since 5.2。4
+	 */
+	public String getStrNotEmpty(String key, String group, String defaultValue) {
+		final String value = getByGroup(key, group);
+		return ObjectUtil.defaultIfEmpty(value, defaultValue);
 	}
 
 	/**
@@ -144,7 +156,7 @@ public abstract class AbsSetting implements OptNullBasicTypeFromStringGetter<Str
 		if (StrUtil.isBlank(value)) {
 			return null;
 		}
-		return StrUtil.split(value, delimiter);
+		return StrUtil.splitToArray(value, delimiter);
 	}
 
 	// --------------------------------------------------------------- Get int
@@ -175,7 +187,7 @@ public abstract class AbsSetting implements OptNullBasicTypeFromStringGetter<Str
 	// --------------------------------------------------------------- Get bool
 
 	/**
-	 * 获取波尔型属性值
+	 * 获取布尔型属性值
 	 *
 	 * @param key   属性名
 	 * @param group 分组名
@@ -186,7 +198,7 @@ public abstract class AbsSetting implements OptNullBasicTypeFromStringGetter<Str
 	}
 
 	/**
-	 * 获取波尔型型属性值
+	 * 获取布尔型属性值
 	 *
 	 * @param key          属性名
 	 * @param group        分组名
@@ -268,7 +280,7 @@ public abstract class AbsSetting implements OptNullBasicTypeFromStringGetter<Str
 	 * 将setting中的键值关系映射到对象中，原理是调用对象对应的set方法<br>
 	 * 只支持基本类型的转换
 	 *
-	 * @param <T> Bean类型
+	 * @param <T>   Bean类型
 	 * @param group 分组
 	 * @param bean  Bean对象
 	 * @return Bean
@@ -292,21 +304,21 @@ public abstract class AbsSetting implements OptNullBasicTypeFromStringGetter<Str
 	 * 将setting中的键值关系映射到对象中，原理是调用对象对应的set方法<br>
 	 * 只支持基本类型的转换
 	 *
-	 * @param <T> Bean类型
-	 * @param group 分组
-	 * @param beanClass  Bean类型
+	 * @param <T>       Bean类型
+	 * @param group     分组
+	 * @param beanClass Bean类型
 	 * @return Bean
 	 * @since 5.0.6
 	 */
 	public <T> T toBean(String group, Class<T> beanClass) {
-		return toBean(group, ReflectUtil.newInstance(beanClass));
+		return toBean(group, ReflectUtil.newInstanceIfPossible(beanClass));
 	}
 
 	/**
 	 * 将setting中的键值关系映射到对象中，原理是调用对象对应的set方法<br>
 	 * 只支持基本类型的转换
 	 *
-	 * @param <T> bean类型
+	 * @param <T>  bean类型
 	 * @param bean Bean
 	 * @return Bean
 	 */
@@ -318,7 +330,7 @@ public abstract class AbsSetting implements OptNullBasicTypeFromStringGetter<Str
 	 * 将setting中的键值关系映射到对象中，原理是调用对象对应的set方法<br>
 	 * 只支持基本类型的转换
 	 *
-	 * @param <T> bean类型
+	 * @param <T>       bean类型
 	 * @param beanClass Bean类型
 	 * @return Bean
 	 * @since 5.0.6
